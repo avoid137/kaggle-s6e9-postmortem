@@ -1,0 +1,14 @@
+k,added,auc
+1,Environmental_Concern_Level,0.8428795858306075
+2,Subsidy_Available,0.9163544637584438
+3,Annual_Income_USD,0.9353980095561849
+4,Home_Charging_Possible,0.9364854471930671
+5,Range_Anxiety_Level,0.939073881079047
+6,Daily_Commute_km,0.9396725347155072
+7,Age,0.9400014963821164
+8,Charging_Stations_Near_Home,0.939832375524587
+9,City_Type,0.9399204239622899
+10,Charging_Stations_Near_Work,0.9397081225030213
+11,Current_Car_Type,0.9398147741465797
+12,Gender,0.9397179243693353
+13,Number_of_Cars_Owned,0.9396957271602882

@@ -1,0 +1,18 @@
+# competition data (never publish)
+data/train.csv
+data/test.csv
+data/sample_submission.csv
+
+# member prediction cache (hundreds of MB)
+*.npy
+*.csv
+!data/*.csv
+!s3_weight_check.csv
+
+# kaggle submission artifacts
+submission_*.csv
+
+# python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/

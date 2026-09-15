@@ -1,0 +1,24 @@
+{
+  "n_train": 668665,
+  "n_test": 286571,
+  "pos_rate": 0.17464500160768098,
+  "n_features": 13,
+  "missing": 0,
+  "dup_rows": 0,
+  "subsidy_rate": {
+    "No": 0.0057566450658476575,
+    "Yes": 0.2746952315858912
+  },
+  "home_charge_rate": {
+    "No": 0.12708507291686894,
+    "Yes": 0.1958191135500576
+  },
+  "cardinality": {
+    "Gender": 3,
+    "City_Type": 3,
+    "Current_Car_Type": 4,
+    "Home_Charging_Possible": 2,
+    "Subsidy_Available": 2,
+    "Range_Anxiety_Level": 3
+  }
+}

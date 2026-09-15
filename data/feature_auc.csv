@@ -1,0 +1,14 @@
+feature,kind,univariate_auc,binned_oof_auc
+Environmental_Concern_Level,numeric,0.843521340965195,0.8405774203252367
+Subsidy_Available,categorical,,0.7173408736644842
+Annual_Income_USD,numeric,0.6703667708314164,0.6733972515636033
+Home_Charging_Possible,categorical,,0.5506585762469238
+Range_Anxiety_Level,categorical,,0.544684033715986
+Daily_Commute_km,numeric,0.5337569407642957,0.538069660675278
+Age,numeric,0.5055354685835938,0.5318242347936774
+Charging_Stations_Near_Home,numeric,0.5158862771684991,0.52250506468958
+City_Type,categorical,,0.5224133207918611
+Charging_Stations_Near_Work,numeric,0.5106197902135918,0.5113320072004807
+Current_Car_Type,categorical,,0.5091901836292745
+Gender,categorical,,0.5033628309285023
+Number_of_Cars_Owned,numeric,0.5039345085689741,0.4999210317449456
