@@ -8,15 +8,20 @@ This script measures the honest replacement: the **leave-one-out delta of a glob
 stack in gaussianised-rank space** (the corrected protocol), on the full discovered member
 pool.  Members whose removal costs ~0 are the ones that genuinely add nothing.
 
+    python -u verify_s3_weights.py          # ~9 members, ~2 min
+    WIDE=1 python -u verify_s3_weights.py   # also sweep every member, ~40 min
+
 Writes: s3_weight_check.log  (nothing else is touched)
 """
-import os, time
+import os, sys, time
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 import numpy as np, pandas as pd
 from sklearn.model_selection import StratifiedKFold
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
 from scipy.stats import rankdata, norm
+
+WIDE = os.environ.get("WIDE", "0") == "1"
 
 t0 = time.time()
 SEEDS = [2024, 42]
@@ -88,23 +93,26 @@ for k in names:
     rows.append((k, stand, d, coef[k]))
 
 print("\n--- wider scan: every member whose removal is free or profitably removed ---")
-free, costly = [], []
-for k in names:
-    if k in TOPIC:
-        continue
-    j = names.index(k)
-    a, _ = cf([i for i in allidx if i != j])
-    d = base - a
-    (free if d <= 5e-5 else costly).append((k, d))
-free.sort(key=lambda r: r[1])
-costly.sort(key=lambda r: -r[1])
-print(f"  {len(free)} of {len(names)} members are removable at < 5e-5 cost")
-print("  5 most expensive to remove (highest marginal value):")
-for k, d in costly[:5]:
-    print(f"    {k:22s} {d:+.5f}")
-print("  5 cheapest to remove (lowest marginal value):")
-for k, d in free[:5]:
-    print(f"    {k:22s} {d:+.5f}")
+if not WIDE:
+    print("  (skipped; set WIDE=1 to sweep all members - ~40 min)")
+else:
+    free, costly = [], []
+    for k in names:
+        if k in TOPIC:
+            continue
+        j = names.index(k)
+        a, _ = cf([i for i in allidx if i != j])
+        d = base - a
+        (free if d <= 5e-5 else costly).append((k, d))
+    free.sort(key=lambda r: r[1])
+    costly.sort(key=lambda r: -r[1])
+    print(f"  {len(free)} of {len(names)} members are removable at < 5e-5 cost")
+    print("  5 most expensive to remove (highest marginal value):")
+    for k, d in costly[:5]:
+        print(f"    {k:22s} {d:+.5f}")
+    print("  5 cheapest to remove (lowest marginal value):")
+    for k, d in free[:5]:
+        print(f"    {k:22s} {d:+.5f}")
 
 pd.DataFrame(rows, columns=["member", "standalone_auc", "loo_delta", "lr_coef"]).to_csv(
     "s3_weight_check.csv", index=False)

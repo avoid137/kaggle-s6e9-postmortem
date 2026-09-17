@@ -1,16 +1,30 @@
-# competition data (never publish)
-data/train.csv
-data/test.csv
-data/sample_submission.csv
+# ---------------------------------------------------------------------------
+# NOTE ON ORDER: git uses the LAST matching pattern, so every `!` re-include
+# must come BEFORE the specific excludes it is meant to override.
+# (Getting this backwards silently un-ignores the competition data.)
+# ---------------------------------------------------------------------------
+
+# ignore all raw data by default ...
+data/*
+# ... then re-include only the small derived summaries that ship with this repo
+!data/cumulative.csv
+!data/feature_auc.csv
+!data/stats.json
+
+# competition data + submission artifacts: never publish, under any name
+train.csv
+test.csv
+sample_submission.csv
+submission_*.csv
 
 # member prediction cache (hundreds of MB)
 *.npy
-*.csv
-!data/*.csv
-!s3_weight_check.csv
 
-# kaggle submission artifacts
-submission_*.csv
+# other working csvs, except the two that document a measurement
+*.csv
+!data/cumulative.csv
+!data/feature_auc.csv
+!s3_weight_check.csv
 
 # python
 __pycache__/

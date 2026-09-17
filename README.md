@@ -1,4 +1,4 @@
-# Why I was stuck at 0.943 — a postmortem of 42 models, one silent bug, and a CV gain that didn't survive the leaderboard
+# Why I was stuck at 0.943 — 49 models, one silent bug, and a CV gain that didn't survive the leaderboard
 
 **Kaggle Playground S6E9 — Predicting Electric Vehicle Purchases** · metric **ROC AUC** · 668,665 train / 286,571 test rows · 17.46% positives · CTGAN doubly-synthetic tabular data.
 
@@ -6,12 +6,14 @@ Final: **public LB 0.94278** (11 submissions, ~2,000 teams, top score 0.94672).
 
 This repo is the write-up, the iteration log, and the scripts behind it. The point is not the score — it is the two failure modes worth knowing about, and the checklist at the end.
 
+**Read it on Kaggle:** [S6E9 postmortem: CV up, LB down (49 models)](https://www.kaggle.com/code/avid147/s6e9-postmortem-cv-up-lb-down-49-models) — the same write-up, published as a Competition Notebook under Playground S6E9 (runs in ~3 s, no data needed).
+
 ---
 
 ## TL;DR
 
 1. **The signal is absurdly concentrated.** One feature — `Environmental_Concern_Level` — alone gives **AUC 0.8435**. `Subsidy_Available` is a near-hard gate (**0.6%** buy rate when `No` vs **27.5%** when `Yes`). **3 features reach 0.9354**, and the CV curve **peaks at 7 features (0.9400)** — all 13 columns are no better. Almost all modelling effort goes into the last 0.004.
-2. A **37-member stack** got me to **LB 0.94278** with a **global linear** combiner. That turned out to be my best submission.
+2. A **stack over 49 member models** got me to **CV 0.94275 / public LB 0.94278** with a **global linear** combiner (the shipped version used 37 of them after curation). That turned out to be my best submission.
 3. I then **falsified 17 "obvious" improvements**, each with a measurement rather than an opinion (§3). That table is the part that saved the most time.
 4. **The interesting result:** swapping the combiner from global-linear to a tree / leaf-linear stack raised cross-validated AUC **0.94275 → 0.94323 (+0.00048)** and *lowered* the leaderboard score **0.94278 → 0.94238 (−0.00040)**. A **0.00088 swing in the wrong direction** — and statistically solid at ≈8σ once leaderboard noise is calibrated as a *paired* difference.
 5. **Root cause:** the members' **OOF columns were each the prediction of one model**; the **test columns were 5-fold averages**. Different **aggregation order** → the combiner fitted corrections calibrated to OOF-specific noise that is averaged away at inference. **Linear combiners are structurally immune; non-linear ones are not.**
@@ -24,6 +26,7 @@ This repo is the write-up, the iteration log, and the scripts behind it. The poi
 ```
 notebooks/EV_S6E9_postmortem.ipynb   # the self-contained write-up (no data needed, runs in ~3 s, 5 figures)
 docs/experiment-log.md               # chronological iteration log: every run, every number, every pitfall
+docs/kaggle-listing.md               # the Kaggle title/description/Discussion copy + the publish checklist
 scripts/                             # the scripts behind the numbers, in reading order:
   nb_feature_stats.py                #   §1 univariate AUCs + the greedy cumulative curve
   lb_vs_cv.py                        #   §2 CV ↔ LB offset table
@@ -101,23 +104,30 @@ Every row is a **measured** result. Verdicts are based on standalone CV or on th
 
 | # | idea | measured | verdict |
 |---|---|---|---|
-| 1 | Plain MLP / RealMLP-style net | 0.9367 (fold 0) | −0.0045 vs GBDT — dropped |
-| 2 | Logistic regression, one-hot + bins + interactions | 0.9394 | −0.0022; no marginal value in the stack |
+| 1 | Plain MLP / RealMLP-style net | 0.9367 (fold 0) | −0.0045 vs GBDT; LOO Δ +0.00000 — dropped |
+| 2 | Logistic regression, one-hot + bins + interactions | 0.9394 | −0.0022; LOO Δ +0.00002 |
 | 3 | ExtraTrees | 0.9392 | dropped |
-| 4 | Monotone constraints (2 variants) | 0.9404 / 0.9404 | −0.0015; and 4 "obviously monotone" features aren't (Spearman −0.02) |
+| 4 | Monotone constraints (2 variants) | 0.9404 / 0.9404 | −0.0015; LOO Δ −0.00000; and 4 "obviously monotone" features aren't (Spearman −0.02) |
 | 5 | RandomForest | 0.9407 | dropped |
 | 6 | XGBoost | 0.9417 | ±0.0000 — kept as a member only |
 | 7 | HistGradientBoosting (sklearn) | 0.9417 | ±0.0000 — kept as a member only |
-| 8 | Nested cross target encoding, 9 key combos | 0.9415 | no marginal value |
-| 9 | CatBoost, `max_ctr_complexity=4` | 0.9416 | no marginal value |
-| 10 | Original source dataset (10k rows) added to training | 0.9417 | no measurable gain — 10k rows vs 669k |
+| 8 | Nested cross target encoding, 9 key combos | 0.9415 | LOO Δ +0.00000 — dropped |
+| 9 | CatBoost, `max_ctr_complexity=4` | 0.9416 | LOO Δ +0.00001 — dropped |
+| 10 | Original source dataset (10k rows) added to training | 0.9417 | LOO Δ −0.00000 — 10k rows vs 669k |
 | 11 | Original source dataset as the ONLY training set | 0.9377 (best of 4 capacities) | far worse |
 | 12 | 10-fold instead of 5-fold + full-data refit | +0.00005 / +0.00000 | below noise for 3× the cost |
 | 13 | Rank-averaging instead of probability-averaging | 0.94222 = 0.94222 | identical — members were already calibrated |
-| 14 | Greedy weight search over 44 → 49 members | 0.94259 / 0.94246 | worse than the curated 37 (0.94275) |
+| 14 | Greedy weight search over 44 → 49 members | 0.94259 / 0.94245 | worse than the curated 37 (0.94275) |
 | 15 | Nystroem RBF kernel approximation | 0.9349 | dropped |
 | 16 | Pseudo-labelling | bounded by #12 | +25% real data bought +0.00005 → not worth it |
 | 17 | Non-linear / leaf-linear stacking | CV 0.94303–0.94323 | **FALSIFIED ON LB: −0.0004 … −0.0030 (§5)** |
+
+*"LOO Δ" = leave-one-out marginal value inside the **corrected** (gaussianised-rank) stack: refit the stack with that member removed and see what the full pool loses. Measured on all 49 discovered members, base = 0.94245 — see `scripts/verify_s3_weights.py`. Note this is deliberately **not** the raw blend weight, for the reason in §4.*
+
+**Two details worth noticing in the re-measurement:**
+
+- **CatBoost (FE2 view) carries a coefficient of +0.716 and still has zero marginal value.** The weight is not a value — it is absorbed from, and given back to, the correlated members it duplicates. **Reading a stack's coefficients as importances is a mistake regardless of scale.**
+- **The MLP's coefficient is negative (−0.180).** It acts as a *decorrelator*, and a decorrelator with zero marginal value is one you can drop.
 
 Three generalisable lessons:
 
